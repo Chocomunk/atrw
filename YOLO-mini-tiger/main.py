@@ -1,9 +1,20 @@
 from __future__ import print_function
 import os
 import boto3
-from subprocess import call
+import argparse
+import subprocess
 
 
+def execute(cmd):
+    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
+    for stdout_line in iter(popen.stdout.readline, ""):
+        yield stdout_line 
+    popen.stdout.close()
+    return_code = popen.wait()
+    if return_code:
+        raise subprocess.CalledProcessError(return_code, cmd)
+
+        
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='YOLO Training')
@@ -23,19 +34,21 @@ def main():
     # Data, model, and output directories
     parser.add_argument('--output-data-dir', type=str, default=os.environ['SM_OUTPUT_DATA_DIR'])
     parser.add_argument('--model-dir', type=str, default=os.environ['SM_MODEL_DIR'])
-    parser.add_argument('--train', type=str, default=os.environ['SM_CHANNEL_TRAIN'])
-    parser.add_argument('--test', type=str, default=os.environ['SM_CHANNEL_TEST'])
-    parser.add_argument('--out-data', type=str, default=os.environ['SM_CHANNEL_OUTDATA'])
+#     parser.add_argument('--train', type=str, default=os.environ['SM_CHANNEL_TRAIN'])
+#     parser.add_argument('--test', type=str, default=os.environ['SM_CHANNEL_TEST'])
 
     args = parser.parse_args()
 
+    os.chdir("YOLO-mini-tiger/")
     os.chmod('train_darknet.sh', 0o755)
-    rc = call("./train_darknet.sh")
+#     rc = call("./train_darknet.sh")
+    for path in execute(["./train_darknet.sh"]):
+        print(path, end="")
 
-    s3 = boto3.resource('s3')
-    s3.bucket(args.out_bucket).upload_file(
-        "darknet/backup/yolo-mini-tiger_final.weights", 
-        "{}yolo-mini-tiger.weights".format(args.out_prefix))
+#     s3 = boto3.resource('s3')
+#     s3.bucket(args.out_bucket).upload_file(
+#         "darknet/backup/yolo-mini-tiger_final.weights", 
+#         "{}yolo-mini-tiger.weights".format(args.out_prefix))
 
     # ... train `model`, then save it to `model_dir`
     # with open(os.path.join(args.model_dir, 'model.pth'), 'wb') as f:

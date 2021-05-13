@@ -1,4 +1,4 @@
-GPU=$(SM_NUM_GPUs)
+GPU=$(SM_NUM_GPUS)
 CUDNN=1
 CUDNN_HALF=0
 OPENCV=0
@@ -197,3 +197,8 @@ setchmod:
 
 clean:
 	rm -rf $(OBJS) $(EXEC) $(LIBNAMESO) $(APPNAMESO)
+
+.PHONY: chkgpu
+
+chkgpu:
+	echo $(GPU)
