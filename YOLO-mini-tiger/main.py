@@ -42,7 +42,7 @@ def main():
     os.chdir("YOLO-mini-tiger/")
     os.chmod('train_darknet.sh', 0o755)
 #     rc = call("./train_darknet.sh")
-    for path in execute(["./train_darknet.sh"]):
+    for path in execute(["bash", "-x", "train_darknet.sh"]):
         print(path, end="")
 
 #     s3 = boto3.resource('s3')
