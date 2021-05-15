@@ -49,6 +49,7 @@ def convert_annotation(year, image_id):
         out_file.write(str(cls_id) + " " + " ".join([str(a) for a in bb]) + '\n')
 
 wd = getcwd()
+print(wd)
 
 for year, image_set in sets:
     if not os.path.exists('VOCdevkit/VOC%s/labels/'%(year)):
