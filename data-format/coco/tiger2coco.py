@@ -32,6 +32,8 @@ def main():
     args = parser.parse_args()
     
     ann_dir = "{0}/Annotations/".format(args.annot)
+    if not os.path.exists('coco_output/'):
+        os.makedirs('coco_output/')
     
     for image_set in image_sets:
         ids_path = "{0}/ImageSets/Main/{1}.txt".format(args.annot, image_set)

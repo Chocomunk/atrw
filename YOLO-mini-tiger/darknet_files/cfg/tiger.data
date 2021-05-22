@@ -1,5 +1,0 @@
-classes=1
-train=data/tiger/2007_train.txt
-valid=data/tiger/2007_val.txt
-names=data/tiger.names
-backup=backup
