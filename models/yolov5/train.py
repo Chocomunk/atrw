@@ -490,7 +490,7 @@ if __name__ == '__main__':
     parser.add_argument('--artifact_alias', type=str, default="latest", help='version of dataset artifact to be used')
 
     # Data, model, and output directories
-    parser.add_argument('--output-s3', type=str, default="s3://calvinandpogs-ee148/atrw/out/detection/yolov5/")
+    parser.add_argument('--output-s3', type=str, default="s3://calvinandpogs-ee148/atrw/out/detection/yolov5/train/")
 #     parser.add_argument('--output-data-dir', type=str, default=os.environ['SM_OUTPUT_DATA_DIR'])
     parser.add_argument('--model_dir', type=str, default=os.environ['SM_MODEL_DIR'])
 #     parser.add_argument('--train', type=str, default=os.environ['SM_CHANNEL_'])
