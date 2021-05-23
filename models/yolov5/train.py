@@ -7,6 +7,7 @@ import time
 from copy import deepcopy
 from pathlib import Path
 from threading import Thread
+from datetime import datetime
 
 import numpy as np
 import torch.distributed as dist
@@ -461,7 +462,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch-size', type=int, default=16, help='total batch size for all GPUs')
     parser.add_argument('--img-size', nargs='+', type=int, default=[640, 640], help='[train, test] image sizes')
     parser.add_argument('--rect', action='store_true', help='rectangular training')
-    parser.add_argument('--resume', nargs='?', const=True, defaultlse, help='resume most recent training')
+    parser.add_argument('--resume', nargs='?', const=True, default=False, help='resume most recent training')
     parser.add_argument('--nosave', action='store_true', help='only save final checkpoint')
     parser.add_argument('--notest', action='store_true', help='only test final epoch')
     parser.add_argument('--noautoanchor', action='store_true', help='disable autoanchor check')
@@ -489,11 +490,15 @@ if __name__ == '__main__':
     parser.add_argument('--artifact_alias', type=str, default="latest", help='version of dataset artifact to be used')
 
     # Data, model, and output directories
-    parser.add_argument('--output-data-dir', type=str, default=os.environ['SM_OUTPUT_DATA_DIR'])
-    parser.add_argument('--model-dir', type=str, default=os.environ['SM_MODEL_DIR'])
-    parser.add_argument('--train', type=str, default=os.environ['SM_CHANNEL_TRAIN'])
-    parser.add_argument('--annot', type=str, default=os.environ['SM_CHANNEL_ANNOT'])
+    parser.add_argument('--output-s3', type=str, default="s3://calvinandpogs-ee148/atrw/out/detection/yolov5/")
+#     parser.add_argument('--output-data-dir', type=str, default=os.environ['SM_OUTPUT_DATA_DIR'])
+    parser.add_argument('--model_dir', type=str, default=os.environ['SM_MODEL_DIR'])
+#     parser.add_argument('--train', type=str, default=os.environ['SM_CHANNEL_'])
+#     parser.add_argument('--annot', type=str, default=os.environ['SM_CHANNEL_ANNOT'])
     opt = parser.parse_args()
+    
+    # Force cache images
+    opt.cache_images = True
 
     # Set DDP variables
     opt.world_size = int(os.environ['WORLD_SIZE']) if 'WORLD_SIZE' in os.environ else 1
@@ -628,3 +633,8 @@ if __name__ == '__main__':
         plot_evolution(yaml_file)
         print(f'Hyperparameter evolution complete. Best results saved as: {yaml_file}\n'
               f'Command to train a new model with these hyperparameters: $ python train.py --hyp {yaml_file}')
+        
+    # Save results to s3
+    dt_string = datetime.now().strftime("%m-%d-%Y-%H-%M-%S")
+    print("Executing: aws s3 cp --recursive {} {}{}/runs/".format(opt.save_dir, opt.output_s3, dt_string))
+    os.system("aws s3 cp --recursive {} {}{}/runs/".format(opt.save_dir, opt.output_s3, dt_string))
