@@ -1,7 +1,7 @@
 #! /bin/bash
 
 S3_BASE=s3://calvinandpogs-ee148/atrw/out/pose/hrnet/$(date +%m-%d-%y-%H-%M-%S)
-HRN_BASE=deep-high-resolution-net.pytorch/data
+HRN_BASE=deep-high-resolution-net.pytorch
 
 # Clone HRNet
 # 1
@@ -31,7 +31,8 @@ cd ../
 # Copy training data
 mkdir -p "$HRN_BASE"
 
-ln -s "$SM_CHANNEL_POSE" "$HRN_BASE"/atrw/pose
+ln -s "$SM_CHANNEL_POSE" "$HRN_BASE"/data/atrw/pose
+ln -s "$SM_CHANNEL_MODELS" "$HRN_BASE"/models
 
 # Train
 cd deep-high-resolution-net.pytorch
