@@ -636,5 +636,6 @@ if __name__ == '__main__':
         
     # Save results to s3
     dt_string = datetime.now().strftime("%m-%d-%Y-%H-%M-%S")
-    print("Executing: aws s3 cp --recursive {} {}{}/runs/".format(opt.save_dir, opt.output_s3, dt_string))
-    os.system("aws s3 cp --recursive {} {}{}/runs/".format(opt.save_dir, opt.output_s3, dt_string))
+    s3_path = os.path.join(opt.output_s3, dt_string)
+    print("Executing: aws s3 cp --recursive {} {}/runs/".format(opt.save_dir, s3_path))
+    os.system("aws s3 cp --recursive {} {}/runs/".format(opt.save_dir, s3_path))

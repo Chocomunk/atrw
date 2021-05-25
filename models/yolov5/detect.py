@@ -1,6 +1,9 @@
+import os
+import re
 import argparse
 import time
 from pathlib import Path
+from datetime import datetime
 
 import cv2
 import torch
@@ -145,6 +148,15 @@ def detect(opt):
         print(f"Results saved to {save_dir}{s}")
 
     print(f'Done. ({time.time() - t0:.3f}s)')
+    opt.save_dir = save_dir
+    
+    
+def replace_SM_environ(string):
+    def environ_replace(match):
+        match = match.group()
+        return os.environ[match]
+    
+    return re.sub(r'SM_[a-zA-Z0-9_]*', environ_replace, string)
 
 
 if __name__ == '__main__':
@@ -171,10 +183,27 @@ if __name__ == '__main__':
     parser.add_argument('--line-thickness', default=3, type=int, help='bounding box thickness (pixels)')
     parser.add_argument('--hide-labels', default=False, action='store_true', help='hide labels')
     parser.add_argument('--hide-conf', default=False, action='store_true', help='hide confidences')
+    
+    # Data, model, and output directories
+    parser.add_argument('--output-s3', type=str, default="s3://calvinandpogs-ee148/atrw/out/detection/yolov5/pred/")
+    parser.add_argument('--model_dir', type=str, default=os.environ['SM_MODEL_DIR'])
+
     opt = parser.parse_args()
+    
+    # Force flag args
+    opt.save_txt = True
+    opt.save_conf = True
+    opt.nosave = True
+    
+    # Apply SageMaker EnvVar to inputs
+    opt.source = replace_SM_environ(opt.source)
+    for i in range(len(opt.weights)):
+        opt.weights[i] = replace_SM_environ(opt.weights[i])
+    
     print(opt)
     check_requirements(exclude=('tensorboard', 'pycocotools', 'thop'))
 
+    opt.save_dir = 'runs/'    # Default to 'runs/' folder
     with torch.no_grad():
         if opt.update:  # update all models (to fix SourceChangeWarning)
             for opt.weights in ['yolov5s.pt', 'yolov5m.pt', 'yolov5l.pt', 'yolov5x.pt']:
@@ -182,3 +211,9 @@ if __name__ == '__main__':
                 strip_optimizer(opt.weights)
         else:
             detect(opt=opt)
+        
+    # Save results to s3
+    dt_string = datetime.now().strftime("%m-%d-%Y-%H-%M-%S")
+    s3_path = os.path.join(opt.output_s3, dt_string)
+    print("Executing: aws s3 cp --recursive {} {}/runs/".format(opt.save_dir, s3_path))
+    os.system("aws s3 cp --recursive {} {}/runs/".format(opt.save_dir, s3_path))
