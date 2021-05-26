@@ -299,7 +299,8 @@ def test(data,
     with open(sum_json, 'w') as f:
         json.dump(summary_dict, f)
         
-    opt.save_dir = save_dir
+    if opt is not None and save_dir is not None:
+        opt.save_dir = save_dir
     return (mp, mr, map50, map, *(loss.cpu() / len(dataloader)).tolist()), maps, t
     
     
