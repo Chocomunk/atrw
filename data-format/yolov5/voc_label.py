@@ -71,10 +71,11 @@ def main():
     
     if not os.path.exists('yolov5/ImageSets/'):
         os.makedirs('yolov5/ImageSets/')
+        
+    if not os.path.exists('yolov5/labels/'):
+        os.makedirs('yolov5/labels/')
 
     for year, image_set in sets:
-        if not os.path.exists('yolov5/labels/%s/'%(image_set)):
-            os.makedirs('yolov5/labels/%s/'%(image_set))
         image_ids = open('%s/ImageSets/Main/%s.txt'%(args.annot, image_set)).read().strip().split()
         list_file = open('yolov5/ImageSets/%s.txt'%(image_set), 'w')
         for image_id in image_ids:

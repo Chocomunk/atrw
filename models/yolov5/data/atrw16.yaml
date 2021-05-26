@@ -1,9 +1,9 @@
 # download command/URL (optional)
-download: bash data/scripts/setup_tiger.sh
+download: bash data/scripts/setup_tiger.sh train16.txt 0.0625
 
 
 # train and val data as 1) directory: path/images/, 2) file: path/images.txt, or 3) list: [path1/images/, path2/images/]
-train: ./train.txt
+train: ./train16.txt
 val: ./val.txt
 test: ./test.txt
 

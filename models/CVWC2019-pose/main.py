@@ -39,7 +39,7 @@ def main():
 
     args = parser.parse_args()
 
-    os.chdir("CVWC2019-pose/")
+    os.chdir("./")
     os.chmod('train_hrnet.sh', 0o755)
 #     rc = call("./train_hrnet.sh")
     for path in execute(["bash", "-x", "train_hrnet.sh"]):
