@@ -3,6 +3,9 @@
 mkdir -p data/images/
 mkdir -p data/labels/
 
+mkdir -p ../coco/annotations/
+cp data/atrw_detect.json ../coco/annotations/instances_val2017.json
+
 echo "------------------------------SETUP ATRW-----------------------------------"
 
 # Setup training data

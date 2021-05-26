@@ -87,7 +87,7 @@ def detect(opt):
                 p, s, im0, frame = path, '', im0s.copy(), getattr(dataset, 'frame', 0)
 
             p = Path(p)  # to Path
-            save_path = str(save_dir / p.name)  # img.jpg
+            save_path = str(save_dir / 'images' / p.name)  # img.jpg
             txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # img.txt
             s += '%gx%g ' % img.shape[2:]  # print string
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
@@ -193,7 +193,7 @@ if __name__ == '__main__':
     # Force flag args
     opt.save_txt = True
     opt.save_conf = True
-    opt.nosave = True
+#     opt.nosave = True
     
     # Apply SageMaker EnvVar to inputs
     opt.source = replace_SM_environ(opt.source)
@@ -216,4 +216,4 @@ if __name__ == '__main__':
     dt_string = datetime.now().strftime("%m-%d-%Y-%H-%M-%S")
     s3_path = os.path.join(opt.output_s3, dt_string)
     print("Executing: aws s3 cp --recursive {} {}/runs/".format(opt.save_dir, s3_path))
-    os.system("aws s3 cp --recursive {} {}/runs/".format(opt.save_dir, s3_path))
+    os.system("aws s3 cp --recursive {} {}/runs/ >/dev/null".format(opt.save_dir, s3_path))

@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 from threading import Thread
 from datetime import datetime
+from distutils.util import strtobool
 
 import numpy as np
 import torch
@@ -286,6 +287,18 @@ def test(data,
     for i, c in enumerate(ap_class):
         maps[c] = ap[i]
         
+    # Save result summaries:
+    summary_dict = {
+        'mean_P': mp,
+        'mean_R': mr,
+        'map_50': map50,
+        'map_range': map,
+        'map_class': list(maps)
+    }
+    sum_json = str(save_dir / "summaries.json")
+    with open(sum_json, 'w') as f:
+        json.dump(summary_dict, f)
+        
     opt.save_dir = save_dir
     return (mp, mr, map50, map, *(loss.cpu() / len(dataloader)).tolist()), maps, t
     
@@ -320,6 +333,7 @@ if __name__ == '__main__':
     parser.add_argument('--exist-ok', action='store_true', help='existing project/name ok, do not increment')
     
     # Data, model, and output directories
+    parser.add_argument('--save-s3', type=lambda x: bool(strtobool(x)), default=True, help='En(dis)able uploading results to S3')
     parser.add_argument('--output-s3', type=str, default="s3://calvinandpogs-ee148/atrw/out/detection/yolov5/test/")
     parser.add_argument('--model_dir', type=str, default=os.environ['SM_MODEL_DIR'])
 
@@ -354,7 +368,7 @@ if __name__ == '__main__':
              save_hybrid=opt.save_hybrid,
              save_conf=opt.save_conf,
              opt=opt
-             )
+        )
 
     elif opt.task == 'speed':  # speed benchmarks
         for w in opt.weights:
@@ -376,7 +390,8 @@ if __name__ == '__main__':
         plot_study_txt(x=x)  # plot
         
     # Save results to s3
-    dt_string = datetime.now().strftime("%m-%d-%Y-%H-%M-%S")
-    s3_path = os.path.join(opt.output_s3, dt_string)
-    print("Executing: aws s3 cp --recursive {} {}/runs/".format(opt.save_dir, s3_path))
-    os.system("aws s3 cp --recursive {} {}/runs/".format(opt.save_dir, s3_path))
+    if opt.save_s3:
+        dt_string = datetime.now().strftime("%m-%d-%Y-%H-%M-%S")
+        s3_path = os.path.join(opt.output_s3, dt_string)
+        print("Executing: aws s3 cp --recursive {} {}/runs/".format(opt.save_dir, s3_path))
+        os.system("aws s3 cp --recursive {} {}/runs/ >/dev/null".format(opt.save_dir, s3_path))

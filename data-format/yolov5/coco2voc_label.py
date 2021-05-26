@@ -1,21 +1,18 @@
 import os
 import json
 import argparse
-import subprocess
 
 def convert(size, box):
     dw = 1./(size[0])
     dh = 1./(size[1])
-#     x = (box[0] + box[1])/2.0 - 1
-#     y = (box[2] + box[3])/2.0 - 1
-#     w = box[1] - box[0]
-#     h = box[3] - box[2]
-    x, y, w, h = box
-    x = x*dw
-    w = w*dw
-    y = y*dh
-    h = h*dh
-    return (x,y,w,h)
+    l, t, w, h = box        # top-left, (width, heigh)
+    x = l + (w/2.0)
+    y = t + (h/2.0)
+    x1 = x*dw
+    w1 = w*dw
+    y1 = y*dh
+    h1 = h*dh
+    return (x1,w1,y1,h1), (int(x),int(y),w,h)    # Image Scaled, Native Scaling
         
 def coco_to_dict(json_file):
     annot_dict = {}
@@ -34,10 +31,12 @@ def coco_to_dict(json_file):
         img_id = annot['image_id']
         
         bbox = convert(annot_dict[img_id]['size'], annot['bbox'])
-        bbox_string = str(annot['category_id'] - 1) + " " + " ".join([str(a) for a in bbox]) + '\n'
+        bbox_string = str(annot['category_id'] - 1) + " " + " ".join([str(a) for a in bbox[0]]) + '\n'
         annot_dict[img_id]['bboxes'].append(bbox_string)
+        annot['bbox'] = bbox[1]    # Convert existing bbox format
+        annot['category_id'] -= 1
         
-    return annot_dict
+    return annot_dict, coco
 
 def write_annots(annot_dict, image_set, image_set_dir, labels_dir):
     with open(os.path.join(image_set_dir, "%s.txt"%(image_set)), 'w') as list_file:
@@ -47,15 +46,6 @@ def write_annots(annot_dict, image_set, image_set_dir, labels_dir):
             
             with open(os.path.join(labels_dir, "%s.txt"%(img_name)), 'w') as annot_file:
                 annot_file.writelines(img_data['bboxes'])
-
-def execute(cmd):
-    popen = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True)
-    for stdout_line in iter(popen.stdout.readline, ""):
-        yield stdout_line 
-    popen.stdout.close()
-    return_code = popen.wait()
-    if return_code:
-        raise subprocess.CalledProcessError(return_code, cmd)
                 
 def main():
     parser = argparse.ArgumentParser(description='YOLO Training')
@@ -67,19 +57,31 @@ def main():
     args = parser.parse_args()
     
     image_set = 'test'
-    image_set_dir = 'yolov5/ImageSets/'
-    labels_dir = 'yolov5/labels/'
+    root_dir = 'yolov5'
+    image_set_dir = os.path.join(root_dir, "ImageSets", "")
+    labels_dir = os.path.join(root_dir, "labels", "")
     
     if not os.path.exists(image_set_dir):
         os.makedirs(image_set_dir)
     if not os.path.exists(labels_dir):
         os.makedirs(labels_dir)
-    
-    annots = coco_to_dict(args.annot)
-    write_annots(annots, image_set, image_set_dir, labels_dir)
         
-    for path in execute(["aws", "s3", "cp", "--recursive", "yolov5/", args.output_dir]):
-        print(path, end="")
+    print("Converting annotations...")
+    
+    annots, coco_dict = coco_to_dict(args.annot)
+    write_annots(annots, image_set, image_set_dir, labels_dir)
+    
+    with open(os.path.join(root_dir, "%s.json"%(image_set)), 'w') as new_coco:
+        json.dump(coco_dict, new_coco)
+    
+
+    print("Conversion Complete!")
+        
+    cmd = "aws s3 cp --recursive {0} {1}".format(root_dir, args.output_dir)
+    print("Executing: {0}".format(cmd))
+    os.system("{0} >/dev/null".format(cmd))
+
+    print("Done!")
 
 
 if __name__ == '__main__':
