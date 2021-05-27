@@ -42,6 +42,7 @@ def test(data,
          compute_loss=None,
          half_precision=True,
          is_coco=False,
+         anno_json='../coco/annotations/instances_val2017.json',
          opt=None):
     # Initialize/load model and set device
     training = model is not None
@@ -256,7 +257,7 @@ def test(data,
     # Save JSON
     if save_json and len(jdict):
         w = Path(weights[0] if isinstance(weights, list) else weights).stem if weights is not None else ''  # weights
-        anno_json = '../coco/annotations/instances_val2017.json'  # annotations json
+#         anno_json = '../coco/annotations/instances_val2017.json'  # annotations json
         pred_json = str(save_dir / f"{w}_predictions.json")  # predictions json
         print('\nEvaluating pycocotools mAP... saving %s...' % pred_json)
         with open(pred_json, 'w') as f:
@@ -337,6 +338,7 @@ if __name__ == '__main__':
     parser.add_argument('--save-s3', type=lambda x: bool(strtobool(x)), default=True, help='En(dis)able uploading results to S3')
     parser.add_argument('--output-s3', type=str, default="s3://calvinandpogs-ee148/atrw/out/detection/yolov5/test/")
     parser.add_argument('--model_dir', type=str, default=os.environ['SM_MODEL_DIR'])
+    parser.add_argument('--anno-json', type=str, default='../coco/annotations/instances_val2017.json')
 
     opt = parser.parse_args()
     opt.save_json |= opt.data.endswith('coco.yaml')
@@ -368,6 +370,7 @@ if __name__ == '__main__':
              save_txt=opt.save_txt | opt.save_hybrid,
              save_hybrid=opt.save_hybrid,
              save_conf=opt.save_conf,
+             anno_json=opt.anno_json,
              opt=opt
         )
 
