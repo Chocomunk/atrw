@@ -12,7 +12,7 @@ def convert(size, box):
     w1 = w*dw
     y1 = y*dh
     h1 = h*dh
-    return (x1,w1,y1,h1), (int(x),int(y),w,h)    # Image Scaled, Native Scaling
+    return (x1,y1,w1,h1), (int(x),int(y),w,h)    # Image Scaled, Native Scaling
         
 def coco_to_dict(json_file):
     annot_dict = {}
@@ -34,7 +34,7 @@ def coco_to_dict(json_file):
         bbox_string = str(annot['category_id'] - 1) + " " + " ".join([str(a) for a in bbox[0]]) + '\n'
         annot_dict[img_id]['bboxes'].append(bbox_string)
         annot['bbox'] = bbox[1]    # Convert existing bbox format
-        annot['category_id'] -= 1
+#         annot['category_id'] = (1 - annot['category_id'])
         
     return annot_dict, coco
 
@@ -51,8 +51,8 @@ def main():
     parser = argparse.ArgumentParser(description='YOLO Training')
     
     parser.add_argument('--output-dir', type=str, default="s3://calvinandpogs-ee148/atrw/detection/annotations/yolov5-test/")
-    
     parser.add_argument('--annot', type=str, default='test-annot/detect.json')
+    parser.add_argument('--no-s3', action='store_true', help='Disables uploading to s3')
 
     args = parser.parse_args()
     
@@ -77,9 +77,10 @@ def main():
 
     print("Conversion Complete!")
         
-    cmd = "aws s3 cp --recursive {0} {1}".format(root_dir, args.output_dir)
-    print("Executing: {0}".format(cmd))
-    os.system("{0} >/dev/null".format(cmd))
+    if not args.no_s3:
+        cmd = "aws s3 cp --recursive {0} {1} --exclude {0}/.ipynb_checkpoints/*".format(root_dir, args.output_dir)
+        print("Executing: {0}".format(cmd))
+        os.system("{0} >/dev/null".format(cmd))
 
     print("Done!")
 
