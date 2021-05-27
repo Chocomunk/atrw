@@ -69,15 +69,17 @@ def main():
     args = parser.parse_args()
     wd = getcwd()
     
-    if not os.path.exists('yolov5/ImageSets/'):
-        os.makedirs('yolov5/ImageSets/')
+    image_set_dir = os.path.join(root_dir, "ImageSets", "Main", "")
+    
+    if not os.path.exists(image_set_dir):
+        os.makedirs(image_set_dir)
         
     if not os.path.exists('yolov5/labels/'):
         os.makedirs('yolov5/labels/')
 
     for year, image_set in sets:
         image_ids = open('%s/ImageSets/Main/%s.txt'%(args.annot, image_set)).read().strip().split()
-        list_file = open('yolov5/ImageSets/%s.txt'%(image_set), 'w')
+        list_file = open(os.path.join(image_set_dir, "%s.txt"%(image_set)), 'w')
         for image_id in image_ids:
             list_file.write('./data/images/tiger/%s.jpg\n'%(image_id))
             convert_annotation(args.annot, image_id)

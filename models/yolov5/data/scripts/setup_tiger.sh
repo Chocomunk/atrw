@@ -3,8 +3,12 @@
 mkdir -p data/images/
 mkdir -p data/labels/
 
-mkdir -p ../coco/annotations/
-cp data/atrw_detect.json ../coco/annotations/instances_val2017.json
+# mkdir -p ../coco/annotations/
+
+# if [[ -z "${ANNOT_CORNER}" ]]; then
+#     cp data/atrw_detect_center.json ../coco/annotations/instances_val2017.json
+# else
+#     cp data/atrw_detect_corner.json ../coco/annotations/instances_val2017.json
 
 echo "------------------------------SETUP ATRW-----------------------------------"
 
