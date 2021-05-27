@@ -90,13 +90,11 @@ def main():
     
     #file_dir = os.getcwd()
     # change the working directory to the path where the images are located
-    data_path = args.input_data_dir
-    os.chdir(data_path)
 
     image_fnames = []
     # creates a ScandirIterator aliased as files
     print('------------ getting image names ------------')
-    with os.scandir(data_path) as files:
+    with os.scandir(args.input_data_dir) as files:
       # loops through each file in the directory
         for file in files:
             if file.name.endswith('.jpg'):
@@ -230,8 +228,8 @@ def main():
                 view_cluster(cluster, groups, args.input_data_dir, args.out_dir)
 
     if args.save_s3:
-        print("Executing: aws s3 cp --recursive {} {}".format(args.out_dir, output_s3))
-        os.system("aws s3 cp --recursive {} {} >/dev/null".format(args.out_dir, output_s3))
+        print("Executing: aws s3 cp --recursive {} {}".format(args.out_dir, args.output_s3))
+        os.system("aws s3 cp --recursive {} {} >/dev/null".format(args.out_dir, args.output_s3))
         
                 
     print('DONE!')
