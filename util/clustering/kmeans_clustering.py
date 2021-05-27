@@ -22,6 +22,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
 from tqdm import tqdm
+from distutils.util import strtobool
 
 def extract_features(file, model):
     # load the image from the s3 bucket as a 224x224 array and convert from 
@@ -61,24 +62,28 @@ def view_cluster(cluster, groups, input_dir, output_dir):
         plt.imshow(img)
         plt.axis('off')
 
-    save_path = output_dir + '/view_clusters'
+    save_path = os.path.join(output_dir, 'view_clusters')
     if not os.path.exists(save_path):
         os.makedirs(save_path)
-    plt.savefig(save_path + '/view_cluster' + str(cluster) + '.png', bbox_inches='tight')
+    plt.savefig(os.path.join(save_path, f'view_cluster{cluster}.png'), bbox_inches='tight')
     plt.close()
 
 def main():
     parser = argparse.ArgumentParser(description='Clustering')
 
-    parser.add_argument('--output-data-dir', type=str)
-    parser.add_argument('--input-data-dir', type=str)   
+    parser.add_argument('--out-dir', type=str, default='./clusters')
+    parser.add_argument('--input-data-dir', type=str, default=os.environ['SM_CHANNEL_IMAGES'])   
+    parser.add_argument('--output-s3', type=str, default='s3://calvinandpogs-ee148/atrw/detection/annotations/clusters')
+
     # raises keyerror locally
     # parser.add_argument('--model-dir', type=str, default=os.environ['SM_MODEL_DIR'])
 
     parser.add_argument('--subset', type=int, default=-1)   
     parser.add_argument('--num-clusters', type=int, default=50)   
 
-    parser.add_argument('--getbestc', type=bool, default=False)   
+    parser.add_argument('--getbestc', type=lambda x: bool(strtobool(x)), default=False)
+    parser.add_argument('--view-images', type=lambda x: bool(strtobool(x)), default=True)
+    parser.add_argument('--save-s3', type=lambda x: bool(strtobool(x)), default=True, help='En(dis)able uploading results to S3')
 
     args = parser.parse_args()
 
@@ -171,7 +176,7 @@ def main():
         plt.xlabel(r'Number of clusters *k*')
         plt.ylabel('Sum of squared distance')
         plt.show()
-        plt.savefig(args.output_data_dir + '/cluster_analysis.png')
+        plt.savefig(os.path.join(args.out_dir, 'plots', 'cluster_analysis.png'))
 
         k = best_k
     else:
@@ -193,7 +198,7 @@ def main():
     for i in u_labels:
         plt.scatter(x[label == i , 0] , x[label == i , 1] , label = i)
 
-    plt.savefig(args.output_data_dir + 'pca_clustering.png', bbox_inches='tight')
+    plt.savefig(os.path.join(args.out_dir, 'clustering_scatter.png'), bbox_inches='tight')
     plt.close()
 
     # holds the cluster id and the images { id: [images] }
@@ -212,18 +217,23 @@ def main():
 
 
     for cluster in groups.keys(): 
-        with open(f"{args.output_data_dir}/labels/label_{cluster}.txt", "w") as output:
+        with open(f"{args.out_dir}/labels/label_{cluster}.txt", "w") as output:
             for file in groups[cluster]:
                 output.write('%s\n' % file)
 
 
+    if args.view_images:
+        print('------------ saving group images ------------')
 
-    print('------------ saving group images ------------')
-    for cluster in groups.keys():
-        if len(groups[cluster]) > 1:
-            view_cluster(cluster, groups, args.input_data_dir, args.output_data_dir)
+        for cluster in groups.keys():
+            if len(groups[cluster]) > 1:
+                view_cluster(cluster, groups, args.input_data_dir, args.out_dir)
 
-
+    if args.save_s3:
+        print("Executing: aws s3 cp --recursive {} {}".format(args.out_dir, output_s3))
+        os.system("aws s3 cp --recursive {} {} >/dev/null".format(args.out_dir, output_s3))
+        
+                
     print('DONE!')
     
 if __name__ == '__main__':
