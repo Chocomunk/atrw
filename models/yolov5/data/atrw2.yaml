@@ -1,0 +1,14 @@
+# download command/URL (optional)
+download: bash data/scripts/setup_tiger.sh train2.txt 0.5
+
+
+# train and val data as 1) directory: path/images/, 2) file: path/images.txt, or 3) list: [path1/images/, path2/images/]
+train: ./train2.txt
+val: ./val.txt
+test: ./test.txt
+
+# number of classes
+nc: 1
+
+# class names
+names: [ 'Tiger' ]
