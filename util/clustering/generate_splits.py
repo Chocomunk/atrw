@@ -6,16 +6,25 @@ import random
 from collections import deque
 import itertools
 
-def write_split(path, c_split, cluster_dict):
+def write_split(path, c_split, cluster_dict, split_size):
+    curr_size = 0
+    cluster_count = 0
+
     with open(path, "w") as output:
-        for c in c_split:
-            for img_id in cluster_dict[c]:
-                output.write('%s\n' % img_id)
+            for c in c_split:
+                if curr_size >= split_size:
+                    break
+                for img_id in cluster_dict[c]:
+                    output.write('%s\n' % img_id)
+                    curr_size += 1
+                cluster_count += 1
+    return cluster_count
+
 
 def main():
     parser = argparse.ArgumentParser(description='Splits')
     parser.add_argument('--subset', type=int, default=-1) 
-    parser.add_argument('--test-percent', type=float, default=0.20) # Note: percent of clusters     
+    parser.add_argument('--test-percent', type=float, default=0.20) # Note: percent of images     
     parser.add_argument('--val-percent', type=float, default=0.05)  # Note: percent of images
 
     parser.add_argument('--out-dir', type=str, default='./splits/')
@@ -49,43 +58,31 @@ def main():
     num_images = sum((len(v) for v in cluster_dict.values()))
     print("Collected {0} clusters containing {1} images ".format(len(cluster_dict), num_images))
 
-    # split clusters into splits
-    k = len(cluster_dict) # total number of clusters
-    m = int(args.test_percent * k) # test set size
-    print(k, m)
+
+    m = int(args.test_percent * num_images) # test set size
+    print(m)
 
     cluster_lst = list(cluster_dict.keys())
     print(len(cluster_lst))
-
     random.shuffle(cluster_lst)
     
     # Create a test split of size m
-    write_split(os.path.join(args.out_dir, "test.txt"), cluster_lst[:m], cluster_dict)
-    cluster_lst = cluster_lst[m:]
+    num_test_clusters = write_split(os.path.join(args.out_dir, "test.txt"), cluster_lst, cluster_dict, m)
+    cluster_lst = cluster_lst[num_test_clusters:]
 
     # Create a validation split containing at least a certain number of images
     # based on a percentage of the total number of images
     print(len(cluster_lst))
     v = int(args.val_percent * num_images)
     print('v', v)
-    val_size = 0
-    trainval_cluster_count = 0
-    with open(os.path.join(args.out_dir, "trainval.txt"), "w") as output:
-            for c in cluster_lst:
-                if val_size >= v:
-                    break
-                for img_id in cluster_dict[c]:
-                    output.write('%s\n' % img_id)
-                    val_size += 1
+    num_val_clusters = write_split(os.path.join(args.out_dir, "val.txt"), cluster_lst, cluster_dict, v)
 
-                trainval_cluster_count += 1
-    print(trainval_cluster_count)
 
     # Create a train split with the remaining clusters
-    cluster_lst = cluster_lst[trainval_cluster_count:]
+    cluster_lst = cluster_lst[num_val_clusters:]
     print(len(cluster_lst))
 
-    write_split(os.path.join(args.out_dir, "train.txt"), cluster_lst, cluster_dict)
+    write_split(os.path.join(args.out_dir, "train.txt"), cluster_lst, cluster_dict, num_images)
 
 if __name__ == '__main__':
     main()
