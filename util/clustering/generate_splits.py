@@ -1,7 +1,6 @@
 import os
 import sys
 import argparse
-import contextlib
 import random 
 #from distutils.util import strtobool
 from collections import deque
@@ -12,11 +11,12 @@ def write_split(path, c_split, cluster_dict):
         for c in c_split:
             for img_id in cluster_dict[c]:
                 output.write('%s\n' % img_id)
+
 def main():
     parser = argparse.ArgumentParser(description='Splits')
     parser.add_argument('--subset', type=int, default=-1) 
-    parser.add_argument('--test-percent', type=float, default=0.20)     
-    parser.add_argument('--val-percent', type=float, default=0.05)   
+    parser.add_argument('--test-percent', type=float, default=0.20) # Note: percent of clusters     
+    parser.add_argument('--val-percent', type=float, default=0.05)  # Note: percent of images
 
     parser.add_argument('--out-dir', type=str, default='./splits/')
     parser.add_argument('--input-data-dir', type=str)   
@@ -48,22 +48,23 @@ def main():
 
     num_images = sum((len(v) for v in cluster_dict.values()))
     print("Collected {0} clusters containing {1} images ".format(len(cluster_dict), num_images))
-    #print(cluster_dict)
 
     # split clusters into splits
     k = len(cluster_dict) # total number of clusters
-    m = int(args.test_percent * len(cluster_dict)) # test set size
-    n = k - m # train/val set size
-    print(k, m, n)
+    m = int(args.test_percent * k) # test set size
+    print(k, m)
 
     cluster_lst = list(cluster_dict.keys())
     print(len(cluster_lst))
 
     random.shuffle(cluster_lst)
     
+    # Create a test split of size m
     write_split(os.path.join(args.out_dir, "test.txt"), cluster_lst[:m], cluster_dict)
-
     cluster_lst = cluster_lst[m:]
+
+    # Create a validation split containing at least a certain number of images
+    # based on a percentage of the total number of images
     print(len(cluster_lst))
     v = int(args.val_percent * num_images)
     print('v', v)
@@ -79,6 +80,8 @@ def main():
 
                 trainval_cluster_count += 1
     print(trainval_cluster_count)
+
+    # Create a train split with the remaining clusters
     cluster_lst = cluster_lst[trainval_cluster_count:]
     print(len(cluster_lst))
 
