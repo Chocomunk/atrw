@@ -14,11 +14,14 @@ from distutils.util import strtobool
 from keras.preprocessing.image import load_img 
 from keras.preprocessing.image import img_to_array 
 from keras.applications.vgg16 import preprocess_input 
-from keras.applications.vgg16 import VGG16 
+# from keras.applications.vgg16 import VGG16 
+from vgg16_places_365 import VGG16_Places365 as VGG16Places
 from keras.models import Model
 
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, SpectralClustering, DBSCAN
 from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+from umap import UMAP
 
 
 # Hide stdout of noisy functions
@@ -139,30 +142,36 @@ def main():
     # Extract features for each image
     print("Loading feature model...")
     with nostdout():
-        model = VGG16()
-    model = Model(inputs = model.inputs, outputs = model.layers[-2].output)
+#         model = VGG16()
+        model = VGG16Places(include_top=False)
+#     model = Model(inputs = model.inputs, outputs = model.layers[-2].output)
     img_features = {}
 
     for image in image_fnames[:subset_len]:
         feat = extract_features(os.path.join(args.input_data_dir, image),model)
         img_features[os.path.splitext(image)[0]] = feat    # Remove extension
         
-    feats = np.array(list(img_features.values())).reshape(-1,4096)
+    feats = np.array(list(img_features.values())).reshape(subset_len,-1)
     
     print("Clustering features...")
     
     # Dimensionality reduction
-    x = PCA(n_components=100, random_state=22).fit_transform(feats)
+#     x = PCA(n_components=100, random_state=22).fit_transform(feats)
+#     x = TSNE(n_components=512).fit_transform(feats)
+    x = UMAP(n_components=512, n_neighbors=50).fit_transform(feats)
 
     # Clustering
     k = find_num_clusters(subset_len, x, args.out_dir) if args.getbestc else args.num_clusters
-    kmeans = KMeans(n_clusters=k, random_state=22)
-    label = kmeans.fit_predict(x)
-    kmeans.fit(x)
+#     kmeans = KMeans(n_clusters=k, random_state=22)
+    label = SpectralClustering(n_clusters=k).fit_predict(x)
+#     label = kmeans.fit_predict(x)
+#     kmeans.fit(x)
     
     # Full-reduce down to 2 dimensions
-    y = PCA(n_components=2, random_state=22).fit_transform(x)
-    for i in np.unique(kmeans.labels_):
+#     y = TSNE(n_components=2).fit_transform(x)
+    y = UMAP(n_components=2).fit_transform(x)
+#     for i in np.unique(kmeans.labels_):
+    for i in np.unique(label):
         plt.scatter(y[label == i , 0], y[label == i , 1], s=5, label=i)
     plt.title('Train-Image Feature Clusters')
     plt.xlabel('X1')
@@ -172,7 +181,8 @@ def main():
 
     # Save cluster groups
     groups = {}
-    for file, cluster in zip(img_features.keys(),kmeans.labels_):
+#     for file, cluster in zip(img_features.keys(),kmeans.labels_):
+    for file, cluster in zip(img_features.keys(),label):
         if cluster not in groups.keys():
             groups[cluster] = []
             groups[cluster].append(file)

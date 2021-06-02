@@ -2,5 +2,7 @@ tqdm
 numpy
 matplotlib
 sklearn
+umap-learn
 keras
+keras_applications
 pillow
