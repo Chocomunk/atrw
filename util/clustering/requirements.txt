@@ -1,8 +1,6 @@
-keras
-sklearn
-argparse
-os
+tqdm
 numpy
 matplotlib
-PIL
-tqdm
+sklearn
+keras
+pillow
