@@ -1,0 +1,1 @@
+{"naive": {"cross_entropy": 2.043302495063963, "mapping": {"class1.txt": "B.txt", "class2.txt": "A.txt", "class3.txt": "C.txt", "class4.txt": "D.txt"}}, "perm": {"cross_entropy": 2.043302495063963, "mapping": {"class2.txt": "A.txt", "class1.txt": "B.txt", "class3.txt": "C.txt", "class4.txt": "D.txt"}}}

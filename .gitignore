@@ -1,3 +1,5 @@
-YOLO-mini-tiger/darknet/
-data-format/yolov5/yolov5/
+models/YOLO-mini-tiger/darknet/
+util/data-format/yolov5/yolov5/
 .ipynb_checkpoints/
+clustering/annotations/
+clustering/clusters/
