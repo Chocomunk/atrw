@@ -14,7 +14,7 @@ from distutils.util import strtobool
 from keras.preprocessing.image import load_img 
 from keras.preprocessing.image import img_to_array 
 from keras.applications.vgg16 import preprocess_input 
-# from keras.applications.vgg16 import VGG16 
+from keras.applications.vgg16 import VGG16 
 from vgg16_places_365 import VGG16_Places365 as VGG16Places
 from keras.models import Model
 
@@ -110,8 +110,12 @@ def main():
     parser.add_argument('--num-clusters', type=int, default=50)   
     parser.add_argument('--getbestc', type=lambda x: bool(strtobool(x)), default=False)
     parser.add_argument('--view-images', type=lambda x: bool(strtobool(x)), default=True)
+    
+    parser.add_argument('--model-dataset', type=str, default="places", choices=["imagenet", "places"])
+    parser.add_argument('--dim-reduc', type=str, default="umap", choices=["pca", "umap"])
+    parser.add_argument('--clustering-algo', type=str, default="spectral", choices=["kmeans", "spectral"])
 
-    parser.add_argument('--out-dir', type=str, default='./clusters/')
+    parser.add_argument('--out-dir', type=str, default='./generated-clusters/')
     parser.add_argument('--input-data-dir', type=str, default=os.environ['SM_CHANNEL_IMAGES'])   
     parser.add_argument('--model_dir', type=str, default=os.environ['SM_MODEL_DIR'])
     parser.add_argument('--output-s3', type=str, default='s3://calvinandpogs-ee148/atrw/detection/annotations/clusters')
@@ -141,9 +145,15 @@ def main():
     # Extract features for each image
     print("Loading feature model...")
     with nostdout():
-#         model = VGG16()
-        model = VGG16Places(include_top=False)
-#     model = Model(inputs = model.inputs, outputs = model.layers[-2].output)
+        if args.model_dataset == "imagenet":
+            model = VGG16()
+        elif args.model_dataset == "places":
+            model = VGG16Places(include_top=False)
+        else:
+            raise ValueError("Unsupported dataset: {0}".format(args.model_dataset))
+    
+    if args.model_dataset == "imagenet":
+        model = Model(inputs = model.inputs, outputs = model.layers[-2].output)
     img_features = {}
 
     for image in image_fnames[:subset_len]:
@@ -152,19 +162,29 @@ def main():
         
     feats = np.array(list(img_features.values())).reshape(subset_len,-1)
     
+    print("Features shape: {0}".format(feats.shape))
+    
     print("Clustering features...")
     
     # Dimensionality reduction
     n_comp = 100 if subset_len <= 1024 else 512
-    x = PCA(n_components=n_comp).fit_transform(feats)
 #     x = TSNE(n_components=n_comp).fit_transform(feats)
-    x = UMAP(n_components=n_comp, n_neighbors=2*args.num_clusters).fit_transform(feats)
+    if args.dim_reduc == "pca":
+        x = PCA(n_components=n_comp).fit_transform(feats)
+    elif args.dim_reduc == "umap":
+        x = UMAP(n_components=n_comp, n_neighbors=2*args.num_clusters).fit_transform(feats)
+    else:
+        raise ValueError("Unsupported dimensionality reduction type: {0}".format(args.dim_reduc))
 
 
     # Clustering
     k = find_num_clusters(subset_len, x, args.out_dir) if args.getbestc else args.num_clusters
-    label = KMeans(n_clusters=k).fit_predict(x)
-#     label = SpectralClustering(n_clusters=k).fit_predict(x)
+    if args.clustering_algo == "kmeans":
+        label = KMeans(n_clusters=k).fit_predict(x)
+    elif args.clustering_algo == "spectral":
+        label = SpectralClustering(n_clusters=k).fit_predict(x)
+    else:
+        raise ValueError("Unsupported clustering algorithm: {0}".format(args.clustering_algo))
     
     # Full-reduce down to 2 dimensions
     y = TSNE(n_components=2).fit_transform(x)

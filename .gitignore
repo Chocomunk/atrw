@@ -3,3 +3,4 @@ util/data-format/yolov5/yolov5/
 .ipynb_checkpoints/
 clustering/annotations/
 clustering/clusters/
+test/
